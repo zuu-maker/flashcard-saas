@@ -1,9 +1,8 @@
-import { NextResponse } from 'next/server'
+import { NextResponse } from "next/server";
 import {
   BedrockRuntimeClient,
   InvokeModelCommand,
 } from "@aws-sdk/client-bedrock-runtime";
-
 
 const systemPrompt = `
 You are a flashcard creator.  Your task is to generate concise and effective flashcards for various subjects and topics. You take in text and create multiple flashcards from it. Make sure to create exactly 10 flashcards.
@@ -18,6 +17,7 @@ You are tasked with creating flashcards that are engaging, educational, and effe
 
 You should return in the following JSON format:
 {
+"title":"shortt summary title of the question"
   "flashcards":[
     {
       "front": "Front of the card",
@@ -25,11 +25,10 @@ You should return in the following JSON format:
     }
   ]
 }
-`
+`;
 
 // Hope: Add bedrock here
 export async function POST(req) {
-
   const modelId = "mistral.mistral-large-2402-v1:0";
   const data = await req.text();
   //console.log("data -->", data);
@@ -39,31 +38,28 @@ export async function POST(req) {
 
   // Prepare the payload for the model.
   const payload = {
-    temperature:0.5,
+    temperature: 0.5,
     max_tokens: 5000,
     messages: [
-      {role: "system", content: systemPrompt},
-      {role: "user", content: data},
+      { role: "system", content: systemPrompt },
+      { role: "user", content: data },
     ],
-    
   };
 
   // Invoke Mistral with the payload and wait for the API to respond.
   const command = new InvokeModelCommand({
     body: JSON.stringify(payload),
-    modelId:modelId,
+    modelId: modelId,
   });
 
   const apiResponse = await client.send(command);
   const decodedResponseBody = new TextDecoder().decode(apiResponse.body);
   //console.log(decodedResponseBody)
   const responseBody = JSON.parse(decodedResponseBody);
-  
-  const flashcards = JSON.parse(responseBody.choices[0].message.content)
+
+  const flashcards = JSON.parse(responseBody.choices[0].message.content);
 
   //console.log(flashcards.flashcards)
-  
 
-  
   return NextResponse.json(flashcards.flashcards);
 }
