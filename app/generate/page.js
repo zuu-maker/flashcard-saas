@@ -11,6 +11,9 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
+  Grid,
+  Card,
+  CardContent,
 } from "@mui/material";
 import { useUser } from "@clerk/nextjs";
 
@@ -130,6 +133,8 @@ export default function Generate() {
           rows={4}
           variant="outlined"
           sx={{ mb: 2 }}
+          
+
         />
         <Button
           variant="contained"
