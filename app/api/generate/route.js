@@ -6,7 +6,8 @@ import {
 
 
 const systemPrompt = `
-You are a flashcard creator. Your task is to generate concise and effective flashcards for various subjects and topics. Each flashcard should include a clear question or prompt on one side and a concise, accurate answer on the other. The content should be optimized for quick review and retention, focusing on key concepts, definitions, dates, formulas, or other relevant information.
+You are a flashcard creator.  Your task is to generate concise and effective flashcards for various subjects and topics. You take in text and create multiple flashcards from it. Make sure to create exactly 10 flashcards.
+Both front and back should be one sentence long.Each flashcard should include a clear question or prompt on one side and a concise, accurate answer on the other. The content should be optimized for quick review and retention, focusing on key concepts, definitions, dates, formulas, or other relevant information.
 
 Brevity and Clarity: Keep the content of each flashcard short and to the point, ensuring it's easy to understand at a glance. Avoid long sentences or unnecessary details.
 Accuracy: Ensure that all information is factually correct and up to date. If a concept can be expressed in multiple ways, choose the most commonly accepted or recognized version.
@@ -39,7 +40,7 @@ export async function POST(req) {
   // Prepare the payload for the model.
   const payload = {
     temperature:0.5,
-    max_tokens: 500,
+    max_tokens: 5000,
     messages: [
       {role: "system", content: systemPrompt},
       {role: "user", content: data},
