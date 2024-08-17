@@ -2,7 +2,15 @@
 import { Button } from "@/components/ui/button";
 import db from "@/firebase";
 import { useUser } from "@clerk/nextjs";
-import { collection, doc, getDoc, setDoc } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDoc,
+  setDoc,
+  query,
+  where,
+  getDocs,
+} from "firebase/firestore";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
@@ -11,24 +19,58 @@ import { Textarea } from "@/components/ui/textarea";
 export default function Component() {
   const { isLoaded, isSignedIn, user } = useUser();
   const [flashcards, setFlashcards] = useState([]);
+
+  const [title, setTitle] = useState("");
+  const [mainTitle, setMainTitle] = useState("");
+  const [text, setText] = useState("");
   const [newFlashcards, setNewFlashcards] = useState([1, 2, 3]);
   const [topics, setTopics] = useState([]);
-  const [isCreate, setIsCreate] = useState(false);
+  const [isCreate, setIsCreate] = useState(true);
 
   useEffect(() => {
     async function getFlashcards() {
       if (!user) return;
-      const docRef = doc(collection(db, "users"), user.id);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        const collections = docSnap.data().flashcards || [];
-        setTopics(collections);
-      } else {
-        await setDoc(docRef, { flashcards: [] });
+      const q = query(
+        collection(db, "Flashcards"),
+        where("user", "==", user.id)
+      );
+
+      try {
+        const querySnapshot = await getDocs(q);
+        let _topics = [];
+        querySnapshot.forEach((doc) => {
+          _cards.push({ id: doc.id, ...doc.data() });
+        });
+        setTopics(_topics);
+      } catch (e) {
+        console.error("Error getting documents: ", e);
       }
     }
     getFlashcards();
   }, [user]);
+
+  const saveFlashcards = async () => {
+    if (!setName.trim()) {
+      toast.error("Please enter a name for your flashcard set.");
+      return;
+    }
+
+    try {
+      const docRef = await addDoc(collection(db, "Flashcards"), {
+        userId: user.id,
+        title: title,
+      });
+      const parentDocRef = collection(db, "Flashcards", docRef.id, "content");
+      await addDoc(parentDocRef, {
+        cards: newFlashcards,
+        // Add more fields as needed
+      });
+      toast.success("Saved Successfully");
+      getFlashcards();
+    } catch (e) {
+      console.error("Error adding document: ", e);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!text.trim()) {
@@ -47,22 +89,41 @@ export default function Component() {
       }
 
       const data = await response.json();
-      setNewFlashcards(data);
+      console.log(data);
+      setTitle(data.title);
+      setNewFlashcards(data.flashcards);
     } catch (error) {
       console.error("Error generating flashcards:", error);
-      alert("An error occurred while generating flashcards. Please try again.");
+      toast.error(
+        "An error occurred while generating flashcards. Please try again."
+      );
     }
   };
 
   const toggleIsCreate = () => {
-    setIsCreate(!isCreate);
+    setIsCreate(true);
+  };
+
+  const handleFlashcards = async (id, _title) => {
+    const subCollectionRef = collection(db, "Flashcards", id, "content");
+    const q = query(subCollectionRef);
+
+    try {
+      const querySnapshot = await getDocs(q);
+      let _content = querySnapshot[0].data();
+      setMainTitle(_title);
+      setFlashcards(_content.cards);
+      setIsCreate(false);
+    } catch (e) {
+      console.error("Error retrieving documents: ", e);
+    }
   };
 
   return (
     <div className="flex flex-col h-screen">
       <header className="bg-primary text-primary-foreground py-4 px-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Flashcard App</h1>
+          <h1 className="text-2xl font-bold">A Level Flash</h1>
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="icon">
               <SettingsIcon className="w-6 h-6" />
@@ -82,15 +143,16 @@ export default function Component() {
             <h2 className="text-lg font-bold">My Flashcards</h2>
           </div>
           <div className="p-4 space-y-2">
-            {topics.map((flashcard) => (
+            {topics.map((topic, idx) => (
               <Link
-                href="#"
+                key={idx}
+                href={() => handleFlashcards(topic.id, topic.title)}
                 className="flex items-center justify-between bg-muted rounded-md px-4 py-2 hover:bg-muted/50"
                 prefetch={false}
               >
                 <div className="flex items-center gap-4">
                   <BookIcon className="w-6 h-6 text-muted-foreground" />
-                  <span className="text-sm font-medium">Biology</span>
+                  <span className="text-sm font-medium">{topic.title}</span>
                 </div>
                 <ChevronRightIcon className="w-5 h-5 text-muted-foreground" />
               </Link>
@@ -104,7 +166,9 @@ export default function Component() {
         <div className="bg-background rounded-lg shadow-lg overflow-hidden">
           <div className="bg-primary text-primary-foreground py-4 px-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold">Biology</h2>
+              <h2 className="text-lg font-bold">
+                {mainTitle ? mainTitle : "Create Flashcard"}
+              </h2>
               <div className="flex items-center gap-4">
                 <Button variant="ghost" size="icon">
                   <FilePenIcon className="w-5 h-5" />
@@ -119,27 +183,33 @@ export default function Component() {
           </div>
           {isCreate ? (
             <div className="w-full h-full p-5 space-y-5">
-              <Textarea placeholder="Enter text." />
-              <Button className="w-full">Generate Flashcards</Button>
+              <Textarea
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder="Enter text."
+              />
+              <Button onClick={handleSubmit} className="w-full">
+                Generate Flashcards
+              </Button>
               <hr />
               <div>
                 {newFlashcards.length > 0 && (
                   <div>
                     <div>
-                      <Button>Save Flashcards</Button>
+                      <Button onClick={saveFlashcards}>Save Flashcards</Button>
                     </div>
 
-                    <div>
-                      {newFlashcards.map((newFlashCard) => (
-                        <div className="bg-muted rounded-md p-4 shadow-sm">
+                    <div className="space-y-4 mt-2">
+                      {newFlashcards.map((newFlashCard, idx) => (
+                        <div
+                          key={idx}
+                          className="bg-muted rounded-md p-4 shadow-sm"
+                        >
                           <h3 className="text-lg font-medium">
-                            What is the difference between DNA and RNA?
+                            {newFlashCard.front}
                           </h3>
                           <p className="text-sm text-muted-foreground">
-                            DNA is the genetic material that stores hereditary
-                            information, while RNA is a single-stranded molecule
-                            that carries genetic instructions from DNA to the
-                            ribosome for protein synthesis.
+                            {newFlashCard.back}
                           </p>
                           <div className="flex justify-end mt-4">
                             <Button variant="ghost" size="sm">
@@ -156,54 +226,20 @@ export default function Component() {
             </div>
           ) : (
             <div className="p-4 space-y-4">
-              <div className="bg-muted rounded-md p-4 shadow-sm">
-                <h3 className="text-lg font-medium">
-                  What is the function of mitochondria?
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  Mitochondria are the powerhouses of the cell, responsible for
-                  producing energy through cellular respiration.
-                </p>
-                <div className="flex justify-end mt-4">
-                  <Button variant="ghost" size="sm">
-                    <EyeIcon className="w-5 h-5" />
-                    <span className="sr-only">View Answer</span>
-                  </Button>
+              {flashcards.map((flashcard, idx) => (
+                <div key={idx} className="bg-muted rounded-md p-4 shadow-sm">
+                  <h3 className="text-lg font-medium">{flashcard.front}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {flashcard.back}
+                  </p>
+                  <div className="flex justify-end mt-4">
+                    <Button variant="ghost" size="sm">
+                      <EyeIcon className="w-5 h-5" />
+                      <span className="sr-only">View Answer</span>
+                    </Button>
+                  </div>
                 </div>
-              </div>
-              <div className="bg-muted rounded-md p-4 shadow-sm">
-                <h3 className="text-lg font-medium">
-                  What is the difference between DNA and RNA?
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  DNA is the genetic material that stores hereditary
-                  information, while RNA is a single-stranded molecule that
-                  carries genetic instructions from DNA to the ribosome for
-                  protein synthesis.
-                </p>
-                <div className="flex justify-end mt-4">
-                  <Button variant="ghost" size="sm">
-                    <EyeIcon className="w-5 h-5" />
-                    <span className="sr-only">View Answer</span>
-                  </Button>
-                </div>
-              </div>
-              <div className="bg-muted rounded-md p-4 shadow-sm">
-                <h3 className="text-lg font-medium">
-                  What is the role of photosynthesis in plants?
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  Photosynthesis is the process by which plants use sunlight,
-                  water, and carbon dioxide to produce oxygen and energy in the
-                  form of glucose.
-                </p>
-                <div className="flex justify-end mt-4">
-                  <Button variant="ghost" size="sm">
-                    <EyeIcon className="w-5 h-5" />
-                    <span className="sr-only">View Answer</span>
-                  </Button>
-                </div>
-              </div>
+              ))}
             </div>
           )}
         </div>
