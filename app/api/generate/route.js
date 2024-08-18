@@ -18,7 +18,7 @@ You are tasked with creating flashcards that are engaging, educational, and effe
 
 You should return in the following JSON format:
 {
-"title":"shortt summary title of the question"
+"title":"short summary title of the question",
   "flashcards":[
     {
       "front": "Front of the card",
@@ -60,11 +60,11 @@ export async function POST(req) {
   //console.log(decodedResponseBody)
   const responseBody = JSON.parse(decodedResponseBody);
   
-  const flashcards = JSON.parse(responseBody.choices[0].message.content)
+  const res = JSON.parse(responseBody.choices[0].message.content)
 
-  //console.log(flashcards.flashcards)
+  console.log(res)
   
 
   
-  return NextResponse.json(flashcards.flashcards);
+  return NextResponse.json(res);
 }
