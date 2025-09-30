@@ -6,22 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
 export default function Home() {
-  const handleSubmit = async () => {
-    const checkoutSession = await fetch("/api/checkout_sessions", {
-      method: "POST",
-      headers: { origin: "http://localhost:3000" },
-    });
-    const checkoutSessionJson = await checkoutSession.json();
-
-    const stripe = await getStripe();
-    const { error } = await stripe.redirectToCheckout({
-      sessionId: checkoutSessionJson.id,
-    });
-
-    if (error) {
-      console.warn(error.message);
-    }
-  };
 
   return (
     <div className="flex flex-col min-h-[100dvh]">
@@ -31,7 +15,7 @@ export default function Home() {
           className="flex items-center justify-center"
           prefetch={false}
         >
-          <h2 className="text-2xl font-bold">A Level Flash</h2>
+          <h2 className="text-2xl font-bold">A-Level Flash</h2>
         </Link>
         <nav className="ml-auto flex gap-4 sm:gap-6">
           <SignedOut>
@@ -93,9 +77,9 @@ export default function Home() {
           <div className="container px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <div className="space-y-2">
-                <div className="inline-block rounded-lg bg-muted px-3 py-1 text-sm">
+                {/* <div className="inline-block rounded-lg bg-muted px-3 py-1 text-2xl">
                   Key Features
-                </div>
+                </div> */}
                 <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">
                   Unlock Your A Level Potential
                 </h2>
